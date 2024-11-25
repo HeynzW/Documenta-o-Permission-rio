@@ -11,12 +11,12 @@
             margin: 20px;
         }
         iframe {
-    width: 800px;
-    height: 600px;
-    border: 1px solid #ccc;
-    margin: 10px auto;
-    display: block;
-}
+            width: 800px;
+            height: 600px;
+            border: 1px solid #ccc;
+            margin: 10px auto;
+            display: block;
+        }
         .buttons {
             display: flex;
             justify-content: center;
@@ -78,10 +78,6 @@
             <label for="pdfToSignInput">Selecione o PDF da carteirinha:</label>
             <input type="file" id="pdfToSignInput" accept="application/pdf">
         </div>
-        <div class="file-input-container">
-            <label for="carimboInput">Selecione a imagem do carimbo:</label>
-            <input type="file" id="carimboInput" accept="image/*">
-        </div>
         <button id="completeSignButton" class="hidden" onclick="concludeSign()">Concluir Assinatura</button>
     </div>
 
@@ -91,17 +87,15 @@
         const actionButtons = document.getElementById('actionButtons');
         const signInputs = document.getElementById('signInputs');
         const pdfToSignInput = document.getElementById('pdfToSignInput');
-        const carimboInput = document.getElementById('carimboInput');
         const completeSignButton = document.getElementById('completeSignButton');
         let currentFile = null;
         let pdfFile = null;
-        let carimboFile = null;
 
         // URL da assinatura fixa (dentro da pasta do projeto)
         const assinaturaUrl = './imagens/assinatura2.png';
 
         // URL da imagem de rejeição (dentro da pasta do projeto)
-        const rejeicaoUrl = './imagens/rejeitado.png';
+        const rejeicaoUrl = './imagens/rejeitado.png'; // Alterar para o caminho correto
 
         // Exibe o PDF na tela
         pdfInput.addEventListener('change', (event) => {
@@ -138,15 +132,15 @@
             const firstPage = pages[0];
 
             // Dimensões da imagem de rejeição
-            const rejeicaoWidth = 100; 
-            const rejeicaoHeight = 100;
+            const rejeicaoWidth = 100;  // Largura da imagem de rejeição
+            const rejeicaoHeight = 100; // Altura da imagem de rejeição
 
             // Obtemos as dimensões da página para centralizar a imagem
             const { width, height } = firstPage.getSize();
 
             // Calcula as posições para centralizar a imagem
-            const rejeicaoX = (width - rejeicaoWidth) / 2; 
-            const rejeicaoY = (height - rejeicaoHeight) / 2; 
+            const rejeicaoX = (width - rejeicaoWidth) / 2; // Centraliza horizontalmente
+            const rejeicaoY = (height - rejeicaoHeight) / 2; // Centraliza verticalmente
 
             // Adiciona a imagem de rejeição no PDF
             firstPage.drawImage(rejeicaoImage, {
@@ -173,63 +167,58 @@
         function prepareSign() {
             signInputs.classList.remove('hidden'); // Mostra os inputs para assinatura
 
-            // Monitora os inputs de PDF e carimbo
+            // Monitora os inputs de PDF
             pdfToSignInput.addEventListener('change', handleFileSelection);
-            carimboInput.addEventListener('change', handleFileSelection);
         }
 
-        // Verifica se ambos os arquivos foram carregados
+        // Verifica se o arquivo PDF foi carregado
         function handleFileSelection() {
             pdfFile = pdfToSignInput.files[0];
-            carimboFile = carimboInput.files[0];
 
-            if (pdfFile && carimboFile) {
+            if (pdfFile) {
                 completeSignButton.classList.remove('hidden'); // Mostra o botão "Concluir Assinatura"
             }
         }
 
         // Concluir assinatura
         async function concludeSign() {
-            if (!pdfFile || !carimboFile) {
-                alert('Por favor, selecione o PDF e o carimbo para continuar.');
+            if (!pdfFile) {
+                alert('Por favor, selecione o PDF para continuar.');
                 return;
             }
 
             const pdfBytes = await pdfFile.arrayBuffer();
-            const carimboBytes = await carimboFile.arrayBuffer();
-
             const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
-            const carimboImage = await pdfDoc.embedPng(carimboBytes); // Suporta PNG ou JPEG
+
+            // Extrair as últimas 6 letras do nome do PDF, sem a extensão
+            const fileName = pdfFile.name;
+            const baseName = fileName.slice(0, -4);  // Remover a extensão '.pdf'
+            const carimboText = baseName.slice(-6);  // Últimas 6 letras do nome do arquivo
+
+            const pages = pdfDoc.getPages();
+            const firstPage = pages[0];
+
+            // Posições e tamanhos do carimbo e da assinatura
+            firstPage.drawText(carimboText, {
+                x: 570,   // Posição horizontal do carimbo
+                y: 636.5,   // Posição vertical do carimbo
+                size: 15,  // Tamanho do texto do carimbo
+                color: PDFLib.rgb(0, 0, 0)  // Cor preta
+            });
 
             // Carrega a assinatura fixa
             const assinaturaBytes = await fetch(assinaturaUrl).then(res => res.arrayBuffer());
             const assinaturaImage = await pdfDoc.embedPng(assinaturaBytes);
 
-            const pages = pdfDoc.getPages();
-            const firstPage = pages[0];
-
-            // Dimensões do carimbo
             const { width, height } = firstPage.getSize();
-            const carimboWidth = 55; // Largura do carimbo
-            const carimboHeight = 55; // Altura do carimbo
-            const assinaturaWidth = 150; // Largura da assinatura
+            const assinaturaWidth = 150;  // Largura da assinatura
             const assinaturaHeight = 50; // Altura da assinatura
 
-            // Posições do carimbo e assinatura (ajustáveis)
-            const carimboX = 570; // Posição X do carimbo
-            const carimboY = 636.5; // Posição Y do carimbo
-            const assinaturaX = 320; // Posição X da assinatura
-            const assinaturaY = 670; // Posição Y da assinatura
+            // Posições da assinatura
+            const assinaturaX = 320;   // Posição horizontal da assinatura
+            const assinaturaY = 670;   // Posição vertical da assinatura
 
-            // Adiciona o carimbo na página
-            firstPage.drawImage(carimboImage, {
-                x: carimboX,
-                y: carimboY,
-                width: carimboWidth,
-                height: carimboHeight,
-            });
-
-            // Adiciona a assinatura na página
+            // Adiciona a assinatura no PDF
             firstPage.drawImage(assinaturaImage, {
                 x: assinaturaX,
                 y: assinaturaY,
