@@ -69,33 +69,20 @@
     </div>
     <div class="buttons hidden" id="actionButtons">
         <button class="reject" onclick="rejectPDF()">Rejeitar</button>
-        <button class="sign" onclick="prepareSign()">Assinar</button>
-    </div>
-
-    <!-- Inputs para assinatura -->
-    <div id="signInputs" class="hidden">
-        <div class="file-input-container">
-            <label for="pdfToSignInput">Selecione o PDF da carteirinha:</label>
-            <input type="file" id="pdfToSignInput" accept="application/pdf">
-        </div>
-        <button id="completeSignButton" class="hidden" onclick="concludeSign()">Concluir Assinatura</button>
+        <button class="sign" onclick="signPDF()">Assinar</button>
     </div>
 
     <script>
         const pdfInput = document.getElementById('pdfInput');
         const viewer = document.getElementById('viewer');
         const actionButtons = document.getElementById('actionButtons');
-        const signInputs = document.getElementById('signInputs');
-        const pdfToSignInput = document.getElementById('pdfToSignInput');
-        const completeSignButton = document.getElementById('completeSignButton');
         let currentFile = null;
-        let pdfFile = null;
 
         // URL da assinatura fixa (dentro da pasta do projeto)
         const assinaturaUrl = './imagens/assinatura.png';
 
         // URL da imagem de rejeição (dentro da pasta do projeto)
-        const rejeicaoUrl = './imagens/rejeitado.png'; // Alterar para o caminho correto
+        const rejeicaoUrl = './imagens/rejeitado.png';
 
         // Exibe o PDF na tela
         pdfInput.addEventListener('change', (event) => {
@@ -132,15 +119,13 @@
             const firstPage = pages[0];
 
             // Dimensões da imagem de rejeição
-            const rejeicaoWidth = 100;  // Largura da imagem de rejeição
-            const rejeicaoHeight = 100; // Altura da imagem de rejeição
+            const rejeicaoWidth = 100;
+            const rejeicaoHeight = 100;
 
-            // Obtemos as dimensões da página para centralizar a imagem
             const { width, height } = firstPage.getSize();
 
-            // Calcula as posições para centralizar a imagem
-            const rejeicaoX = (width - rejeicaoWidth) / 2; // Centraliza horizontalmente
-            const rejeicaoY = (height - rejeicaoHeight) / 2; // Centraliza verticalmente
+            const rejeicaoX = (width - rejeicaoWidth) / 2;
+            const rejeicaoY = (height - rejeicaoHeight) / 2;
 
             // Adiciona a imagem de rejeição no PDF
             firstPage.drawImage(rejeicaoImage, {
@@ -150,11 +135,9 @@
                 height: rejeicaoHeight,
             });
 
-            // Salva o PDF com a imagem de rejeição
             const rejectedPdfBytes = await pdfDoc.save();
             const rejectedBlob = new Blob([rejectedPdfBytes], { type: 'application/pdf' });
 
-            // Gera o link de download
             const downloadLink = document.createElement('a');
             downloadLink.href = URL.createObjectURL(rejectedBlob);
             downloadLink.download = rejectedName;
@@ -164,76 +147,49 @@
         }
 
         // Ação ao clicar em "Assinar"
-        function prepareSign() {
-            signInputs.classList.remove('hidden'); // Mostra os inputs para assinatura
-
-            // Monitora os inputs de PDF
-            pdfToSignInput.addEventListener('change', handleFileSelection);
-        }
-
-        // Verifica se o arquivo PDF foi carregado
-        function handleFileSelection() {
-            pdfFile = pdfToSignInput.files[0];
-
-            if (pdfFile) {
-                completeSignButton.classList.remove('hidden'); // Mostra o botão "Concluir Assinatura"
-            }
-        }
-
-        // Concluir assinatura
-        async function concludeSign() {
-            if (!pdfFile) {
-                alert('Por favor, selecione o PDF para continuar.');
+        async function signPDF() {
+            if (!currentFile) {
+                alert('Por favor, carregue um PDF para assinar.');
                 return;
             }
 
-            const pdfBytes = await pdfFile.arrayBuffer();
+            const pdfBytes = await currentFile.arrayBuffer();
             const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
 
-            // Extrair as últimas 6 letras do nome do PDF, sem a extensão
-            const fileName = pdfFile.name;
-            const baseName = fileName.slice(0, -4);  // Remover a extensão '.pdf'
-            const carimboText = baseName.slice(-6);  // Últimas 6 letras do nome do arquivo
-
             const pages = pdfDoc.getPages();
-            const firstPage = pages[0];
+            const lastPage = pages[pages.length - 1]; // Seleciona a última página
 
-            // Posições e tamanhos do carimbo e da assinatura
-            firstPage.drawText(carimboText, {
-                x: 570,   // Posição horizontal do carimbo
-                y: 636.5,   // Posição vertical do carimbo
-                size: 15,  // Tamanho do texto do carimbo
-                color: PDFLib.rgb(0, 0, 0)  // Cor preta
+            // Extrair as últimas 6 letras do nome do PDF, sem a extensão
+            const fileName = currentFile.name;
+            const baseName = fileName.slice(0, -4);  // Remove a extensão '.pdf'
+            const carimboText = baseName.slice(-6);  // Últimos 6 caracteres
+
+            // Adiciona o texto do carimbo
+            lastPage.drawText(carimboText, {
+                x: 570,   // Posição horizontal
+                y: 636.5,   // Posição vertical
+                size: 15,  // Tamanho do texto
+                color: PDFLib.rgb(0, 0, 0)  // Preto
             });
 
             // Carrega a assinatura fixa
             const assinaturaBytes = await fetch(assinaturaUrl).then(res => res.arrayBuffer());
             const assinaturaImage = await pdfDoc.embedPng(assinaturaBytes);
 
-            const { width, height } = firstPage.getSize();
-            const assinaturaWidth = 150;  // Largura da assinatura
-            const assinaturaHeight = 50; // Altura da assinatura
-
-            // Posições da assinatura
-            const assinaturaX = 320;   // Posição horizontal da assinatura
-            const assinaturaY = 656;   // Posição vertical da assinatura
-
-            // Adiciona a assinatura no PDF
-            firstPage.drawImage(assinaturaImage, {
-                x: assinaturaX,
-                y: assinaturaY,
-                width: assinaturaWidth,
-                height: assinaturaHeight,
+            // Posições e tamanhos da assinatura
+            lastPage.drawImage(assinaturaImage, {
+                x: 320,   // Posição horizontal
+                y: 660,   // Posição vertical
+                width: 150,  // Largura
+                height: 40  // Altura
             });
 
-            // Salva o PDF assinado
             const signedPdfBytes = await pdfDoc.save();
             const signedBlob = new Blob([signedPdfBytes], { type: 'application/pdf' });
 
-            // Gera o link de download
             const downloadLink = document.createElement('a');
             downloadLink.href = URL.createObjectURL(signedBlob);
-            downloadLink.download = `${pdfFile.name.replace('.pdf', '_assinado.pdf')}`;
+            downloadLink.download = `${fileName.replace('.pdf', '_assinado.pdf')}`;
             downloadLink.click();
 
             alert('PDF assinado e salvo com sucesso!');
