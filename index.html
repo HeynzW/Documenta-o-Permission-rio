@@ -157,39 +157,42 @@
             const pdfDoc = await PDFLib.PDFDocument.load(pdfBytes);
 
             const pages = pdfDoc.getPages();
-            const lastPage = pages[pages.length - 1]; // Seleciona a última página
+            // Itera sobre as páginas, começando da segunda página (índice 1)
+            for (let i = 1; i < pages.length; i++) {
+                const page = pages[i];
 
-            // Extrair as últimas 6 letras do nome do PDF, sem a extensão
-            const fileName = currentFile.name;
-            const baseName = fileName.slice(0, -4);  // Remove a extensão '.pdf'
-            const carimboText = baseName.slice(-6);  // Últimos 6 caracteres
+                // Extrair as últimas 6 letras do nome do PDF, sem a extensão
+                const fileName = currentFile.name;
+                const baseName = fileName.slice(0, -4);  // Remove a extensão '.pdf'
+                const carimboText = baseName.slice(-6);  // Últimos 6 caracteres
 
-            // Adiciona o texto do carimbo
-            lastPage.drawText(carimboText, {
-                x: 570,   // Posição horizontal
-                y: 636.5,   // Posição vertical
-                size: 15,  // Tamanho do texto
-                color: PDFLib.rgb(0, 0, 0)  // Preto
-            });
+                // Adiciona o texto do carimbo na página
+                page.drawText(carimboText, {
+                    x: 570,   // Posição horizontal
+                    y: 636.5,   // Posição vertical
+                    size: 15,  // Tamanho do texto
+                    color: PDFLib.rgb(0, 0, 0)  // Preto
+                });
 
-            // Carrega a assinatura fixa
-            const assinaturaBytes = await fetch(assinaturaUrl).then(res => res.arrayBuffer());
-            const assinaturaImage = await pdfDoc.embedPng(assinaturaBytes);
+                // Carrega a assinatura fixa
+                const assinaturaBytes = await fetch(assinaturaUrl).then(res => res.arrayBuffer());
+                const assinaturaImage = await pdfDoc.embedPng(assinaturaBytes);
 
-            // Posições e tamanhos da assinatura
-            lastPage.drawImage(assinaturaImage, {
-                x: 320,   // Posição horizontal
-                y: 660,   // Posição vertical
-                width: 150,  // Largura
-                height: 40  // Altura
-            });
+                // Posições e tamanhos da assinatura
+                page.drawImage(assinaturaImage, {
+                    x: 320,   // Posição horizontal
+                    y: 660,   // Posição vertical
+                    width: 150,  // Largura
+                    height: 40  // Altura
+                });
+            }
 
             const signedPdfBytes = await pdfDoc.save();
             const signedBlob = new Blob([signedPdfBytes], { type: 'application/pdf' });
 
             const downloadLink = document.createElement('a');
             downloadLink.href = URL.createObjectURL(signedBlob);
-            downloadLink.download = `${fileName.replace('.pdf', '_assinado.pdf')}`;
+            downloadLink.download = `${currentFile.name.replace('.pdf', '_assinado.pdf')}`;
             downloadLink.click();
 
             alert('PDF assinado e salvo com sucesso!');
