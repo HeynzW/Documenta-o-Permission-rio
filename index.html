@@ -68,8 +68,8 @@
         <!-- O PDF será exibido aqui -->
     </div>
     <div class="buttons hidden" id="actionButtons">
-        <button class="reject" onclick="rejectPDF()">Rejeitar</button>
-        <button class="sign" onclick="signPDF()">Assinar</button>
+        <button class="reject" onclick="rejectPDF()">Discordo</button>
+        <button class="sign" onclick="signPDF()">Concordo</button>
     </div>
 
     <script>
@@ -79,7 +79,7 @@
         let currentFile = null;
 
         // URL da assinatura fixa (dentro da pasta do projeto)
-        const assinaturaUrl = './imagens/assinatura.png';
+        
 
         // URL da imagem de rejeição (dentro da pasta do projeto)
         const rejeicaoUrl = './imagens/rejeitado.png';
@@ -168,23 +168,13 @@
 
                 // Adiciona o texto do carimbo na página
                 page.drawText(carimboText, {
-                    x: 570,   // Posição horizontal
-                    y: 636.5,   // Posição vertical
-                    size: 15,  // Tamanho do texto
+                    x: 270,   // Posição horizontal
+                    y: 475.5,   // Posição vertical
+                    size: 12,  // Tamanho do texto
                     color: PDFLib.rgb(0, 0, 0)  // Preto
                 });
 
-                // Carrega a assinatura fixa
-                const assinaturaBytes = await fetch(assinaturaUrl).then(res => res.arrayBuffer());
-                const assinaturaImage = await pdfDoc.embedPng(assinaturaBytes);
 
-                // Posições e tamanhos da assinatura
-                page.drawImage(assinaturaImage, {
-                    x: 320,   // Posição horizontal
-                    y: 660,   // Posição vertical
-                    width: 150,  // Largura
-                    height: 40  // Altura
-                });
             }
 
             const signedPdfBytes = await pdfDoc.save();
@@ -195,7 +185,7 @@
             downloadLink.download = `${currentFile.name.replace('.pdf', '_assinado.pdf')}`;
             downloadLink.click();
 
-            alert('PDF assinado e salvo com sucesso!');
+            alert('PDF Aceito e salvo com sucesso!');
         }
     </script>
 
